@@ -1,0 +1,13 @@
+.gradle/
+.toolchain/
+**/build/
+local.properties
+signing/
+dist/
+.docpact/runs/
+__pycache__/
+*.pyc
+.DS_Store
+*.jks
+*.keystore
+.env
