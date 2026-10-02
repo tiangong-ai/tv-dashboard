@@ -1,0 +1,91 @@
+version: 1
+layout: repo
+lastReviewedAt: "2026-10-02"
+lastReviewedCommit: "fa94e49"
+repo:
+  id: tv-dashboard
+routing:
+  intents:
+    app:
+      paths: [app/**, config/**]
+    release:
+      paths: [gradle/**, gradle.properties, build.gradle, settings.gradle, gradlew, gradlew.bat, scripts/**, tests/**, .github/workflows/**]
+    governance:
+      paths: [AGENTS.md, README.md, README.zh-CN.md, docs/**, .docpact/**]
+coverage:
+  include: ["**"]
+  exclude: [.git/**, .gradle/**, .toolchain/**, "**/build/**", dist/**, signing/**, local.properties, .docpact/runs/**, "**/__pycache__/**", "**/*.png", "**/*.jar", .DS_Store]
+docInventory:
+  include: [AGENTS.md, README.md, README.zh-CN.md, docs/**/*.md, .docpact/config.yaml]
+  exclude: [.docpact/runs/**]
+freshness:
+  warn_after_commits: 50
+  warn_after_days: 90
+  critical_after_days: 180
+rules:
+  - id: tv-dashboard-app
+    scope: repo
+    repo: tv-dashboard
+    triggers:
+      - path: app/**
+        kind: app
+      - path: config/**
+        kind: configuration
+    requiredDocs:
+      - path: README.md
+        mode: review_or_update
+      - path: README.zh-CN.md
+        mode: review_or_update
+      - path: AGENTS.md
+        mode: review_or_update
+    reason: Device behavior, default URL and supported ABIs must match user instructions.
+  - id: tv-dashboard-release
+    scope: repo
+    repo: tv-dashboard
+    triggers:
+      - path: "*.gradle"
+        kind: build
+      - path: gradle.properties
+        kind: build
+      - path: gradle/**
+        kind: build
+      - path: gradlew*
+        kind: build
+      - path: scripts/**
+        kind: automation
+      - path: tests/**
+        kind: validation
+      - path: .github/workflows/**
+        kind: workflow
+    requiredDocs:
+      - path: docs/releasing.md
+        mode: review_or_update
+      - path: README.md
+        mode: review_or_update
+      - path: AGENTS.md
+        mode: review_or_update
+    reason: Release configuration, signing and validation must remain reproducible.
+  - id: tv-dashboard-governance
+    scope: repo
+    repo: tv-dashboard
+    triggers:
+      - path: AGENTS.md
+        kind: governance
+      - path: .docpact/**
+        kind: governance
+      - path: .gitignore
+        kind: publication-boundary
+      - path: .gitattributes
+        kind: publication-boundary
+      - path: NOTICE.md
+        kind: license-notice
+      - path: README*
+        kind: user-guide
+      - path: docs/**
+        kind: documentation
+    requiredDocs:
+      - path: AGENTS.md
+        mode: review_or_update
+      - path: .docpact/config.yaml
+        mode: review_or_update
+    reason: Standalone ownership and public-source boundaries must remain explicit.

@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Tiangong TV canvas fit",
+  "version": "1.0.1",
+  "browser_specific_settings": {
+    "gecko": { "id": "tv-fit@tiangong.local" }
+  },
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*"],
+    "js": ["tv-fit.js"],
+    "run_at": "document_end"
+  }]
+}

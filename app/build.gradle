@@ -1,0 +1,65 @@
+plugins { id 'com.android.application' }
+
+def dashboardConfigFile = rootProject.file('config/dashboard.properties')
+def dashboardConfig = new Properties()
+dashboardConfigFile.withReader('UTF-8') { dashboardConfig.load(it) }
+def dashboardBaseUrl = providers.gradleProperty('dashboardBaseUrl')
+        .orElse(dashboardConfig.getProperty('dashboardBaseUrl', '')).get().trim()
+try {
+    def address = new URI(dashboardBaseUrl)
+    if (!(address.scheme?.toLowerCase(Locale.ROOT) in ['http', 'https'])
+            || address.host == null || address.rawUserInfo != null
+            || address.rawQuery != null || address.rawFragment != null
+            || address.port < -1 || address.port == 0 || address.port > 65535
+            || address.rawAuthority.endsWith(':')) {
+        throw new IllegalArgumentException('invalid dashboard root')
+    }
+    dashboardBaseUrl = address.normalize().toASCIIString()
+    if (!dashboardBaseUrl.endsWith('/')) dashboardBaseUrl += '/'
+} catch (URISyntaxException | IllegalArgumentException error) {
+    throw new GradleException('dashboardBaseUrl must be an HTTP(S) root with a host and valid port, without credentials, query, or fragment.', error)
+}
+def dashboardAbis = providers.gradleProperty('dashboardAbis')
+        .orElse('armeabi-v7a,arm64-v8a').get().split(',', -1).collect { it.trim() }
+if (dashboardAbis.any { !(it in ['armeabi-v7a', 'arm64-v8a']) }
+        || dashboardAbis.size() != dashboardAbis.toSet().size()) {
+    throw new GradleException('dashboardAbis must contain only armeabi-v7a and/or arm64-v8a, without duplicates.')
+}
+
+android {
+    namespace = 'org.tiangong.tvdashboard'
+    compileSdk { version = release(37) { minorApiLevel = 1 } }
+    defaultConfig {
+        applicationId = 'org.tiangong.tvdashboard'
+        minSdk = 26
+        targetSdk = 36
+        versionCode = providers.gradleProperty('dashboardVersionCode').get().toInteger()
+        versionName = providers.gradleProperty('dashboardVersion').get()
+        buildConfigField 'String', 'ENGINE_VERSION', '"' + providers.gradleProperty('dashboardGeckoVersion').get() + '"'
+        buildConfigField 'String', 'DASHBOARD_BASE_URL', groovy.json.JsonOutput.toJson(dashboardBaseUrl)
+        buildConfigField 'String', 'DEFAULT_DASHBOARD_URL', groovy.json.JsonOutput.toJson(dashboardBaseUrl + 'display/')
+        ndk { abiFilters(*dashboardAbis) }
+    }
+    buildFeatures { buildConfig = true }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    buildTypes {
+        release {
+            minifyEnabled = false
+            debuggable = false
+        }
+    }
+    packaging { jniLibs { useLegacyPackaging = true } }
+    lint {
+        abortOnError = true
+        // GeckoView's unused media NotificationUtil triggers this dependency check.
+        // This app never posts notifications; do not request an unnecessary permission.
+        disable 'NotificationPermission'
+    }
+}
+
+dependencies {
+    implementation 'org.mozilla.geckoview:geckoview:' + providers.gradleProperty('dashboardGeckoVersion').get()
+}
